@@ -4,21 +4,6 @@
 long long log_getTid(void);
 void log_milliSleep(int milliseconds);
 
-/* must sit in memory block large enough to accomodate sizeof it + length of
-   text has linked list ptr as first element and text as last element */
-struct log_Item {
-    struct log_Item * next;
-    long long timestamp1;
-    long long timestamp2;
-    const char * file;
-    const char * func;
-    int line;
-    int level;
-    long long tid; /* should fit any Linux pid_t or Windows DWORD */
-    int len;
-    char text[1]; /* keep last */
-};
-
 /* callbacks for formatting level integer, and for output and flush */
 typedef void(*log_CallbackFunction)(void * self, const void * data, int size);
 typedef const char*(*log_LevelFormatterFunction)(int level);
@@ -28,20 +13,8 @@ typedef void(*log_CallbackFlushFunction)(void * self, int itemswritten);
 void log_CallbackDumpToFILE(void * file, const void * data, int size);
 void log_CallbackFlushFILE(void * file, int itemswritten);
 
-typedef struct log_Logger {
-    struct log_Item * head;
-    int writeblocked; /* for shutdown */
-
-    /* callbacks for output and such */
-    void * outself;
-    log_CallbackFunction outfunc;
-
-    void * flushself;
-    log_CallbackFlushFunction flushfunc;
-
-    log_LevelFormatterFunction levelformatter;
-
-} log_Logger;
+/* forward declaration (definition is lower) */
+typedef struct log_Logger log_Logger;
 
 void log_Logger_init(log_Logger * logger, log_CallbackFunction outfunc, void * outself);
 void log_Logger_setLevelFormatter(log_Logger * logger, log_LevelFormatterFunction formatter);
@@ -58,3 +31,35 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
 
 /* returns amount of items written */
 int log_Logger_dumpAll(log_Logger * logger);
+
+/* PUBLIC API END */
+
+/* must sit in memory block large enough to accomodate sizeof it + length of
+   text has linked list ptr as first element and text as last element */
+struct log_Item {
+    struct log_Item * next;
+    long long timestamp1;
+    long long timestamp2;
+    const char * file;
+    const char * func;
+    int line;
+    int level;
+    long long tid; /* should fit any Linux pid_t or Windows DWORD */
+    int len;
+    char text[1]; /* keep last */
+};
+
+struct log_Logger {
+    struct log_Item * head;
+    int writeblocked; /* for shutdown */
+
+    /* callbacks for output and such */
+    void * outself;
+    log_CallbackFunction outfunc;
+
+    void * flushself;
+    log_CallbackFlushFunction flushfunc;
+
+    log_LevelFormatterFunction levelformatter;
+
+};
