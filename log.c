@@ -123,6 +123,8 @@ void log_Logger_shutdown(log_Logger * logger)
 {
     (void)logger;
     /* TODO: just free the list? dump it first or not? */
+    fprintf(stderr, "log_Logger_shutdown - NOT IMPLEMENTED\n");
+    fflush(stderr);
 }
 
 void log_Logger_blockWrite(log_Logger * logger)
