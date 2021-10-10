@@ -3,6 +3,37 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+/* must sit in memory block large enough to accomodate sizeof it + length of
+   text has linked list ptr as first element and text as last element */
+struct log_Item {
+    struct log_Item * next;
+    long long timestamp1;
+    long long timestamp2;
+    const char * file;
+    const char * func;
+    int line;
+    int level;
+    long long tid; /* should fit any Linux pid_t or Windows DWORD */
+    int len;
+    char text[1]; /* keep last */
+};
+
+struct log_Logger {
+    struct log_Item * head;
+    int writeblocked; /* for shutdown */
+
+    /* callbacks for output and such */
+    void * outself;
+    log_CallbackFunction outfunc;
+
+    void * flushself;
+    log_CallbackFlushFunction flushfunc;
+
+    log_LevelFormatterFunction levelformatter;
+
+};
+
 /* a thread local for both platforms */
 static __thread long long cachedtid;
 
@@ -99,13 +130,36 @@ void log_CallbackFlushFILE(void * file, int itemswritten)
     fflush(f);
 }
 
-void log_Logger_init(log_Logger * logger, log_CallbackFunction outfunc, void * outself)
+log_Logger * log_Logger_createForFILE(void * FILE)
 {
-    //abort if logger or outfunc are false
+    log_Logger * logger = log_Logger_create(&log_CallbackDumpToFILE, FILE);
+    if(!logger)
+        return NULL;
+
+    log_Logger_setFlushCallback(logger, &log_CallbackFlushFILE, FILE);
+    return logger;
+}
+
+log_Logger * log_Logger_create(log_CallbackFunction outfunc, void * outself)
+{
+    if(outfunc == NULL)
+        return NULL;
+
+    log_Logger * logger = (log_Logger*)malloc(sizeof(log_Logger));
+    if(!logger)
+        return NULL;
+
     logger->head = NULL;
     logger->writeblocked = 0;
     logger->outself = outself;
     logger->outfunc = outfunc;
+    return logger;
+}
+
+void log_Logger_destroy(log_Logger * logger)
+{
+    /* TODO: dump all data from list? or only free the list? */
+    free(logger);
 }
 
 void log_Logger_setLevelFormatter(log_Logger * logger, log_LevelFormatterFunction formatter)

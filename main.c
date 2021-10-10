@@ -38,17 +38,10 @@ static void * logmain(void * arg)
 
 int main()
 {
-    log_Logger mylogger;
-    log_Logger * logger = &mylogger;
-
     pthread_t logthread;
     pthread_t threads[10];
     int workers = 10;
-
-    log_Logger_init(logger, &log_CallbackDumpToFILE, stdout);
-    log_Logger_setFlushCallback(logger, &log_CallbackFlushFILE, stdout);
-
-void log_Logger_setFlushCallback(log_Logger * logger, log_CallbackFlushFunction flushfunc, void * flushself);
+    log_Logger * logger = log_Logger_createForFILE(stdout);
 
     pthread_create(&logthread, NULL, logmain, logger);
 
@@ -60,5 +53,5 @@ void log_Logger_setFlushCallback(log_Logger * logger, log_CallbackFlushFunction 
 
     log_Logger_blockWrite(logger);
     pthread_join(logthread, NULL);
-    log_Logger_shutdown(logger);
+    log_Logger_destroy(logger);
 }
