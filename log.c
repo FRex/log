@@ -23,6 +23,9 @@ struct log_Logger {
     struct log_Item * head;
     int writeblocked; /* for shutdown */
 
+    /* tid of thread that is in dump function, 0 if no one is, for error/consistency checking */
+    long long dumpingthread;
+
     /* callbacks for output and such */
     void * outself;
     log_CallbackFunction outfunc;
@@ -153,6 +156,7 @@ log_Logger * log_Logger_create(log_CallbackFunction outfunc, void * outself)
     logger->writeblocked = 0;
     logger->outself = outself;
     logger->outfunc = outfunc;
+    logger->dumpingthread = 0;
     return logger;
 }
 
@@ -237,6 +241,12 @@ int log_Logger_dumpAll(log_Logger * logger)
     char timestampbuff[1024];
     struct log_Item * prev;
     struct log_Item * list;
+
+    /* if not 0 it means someone is already dumping - this is an API misuse */
+    const long long oldtid = __atomic_exchange_n(&logger->dumpingthread, log_getTid(), __ATOMIC_SEQ_CST);
+    if(oldtid != 0)
+        abort();
+
     list = __atomic_exchange_n(&logger->head, NULL, __ATOMIC_SEQ_CST);
     list = reverseList(list);
     int ret = 0;
@@ -266,5 +276,7 @@ int log_Logger_dumpAll(log_Logger * logger)
     if(logger->flushfunc)
         logger->flushfunc(logger->flushself, ret);
 
+    /* set back to 0 so another thread can use this object too, if library client does own locking to ensure correctness */
+    __atomic_store_n(&logger->dumpingthread, 0, __ATOMIC_SEQ_CST);
     return ret;
 }
