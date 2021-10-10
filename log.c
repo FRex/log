@@ -120,7 +120,7 @@ static const char * formatTimestamps(long long t1, long long t2, char * buff)
 void log_CallbackDumpToFILE(void * file, const void * data, int size)
 {
     FILE * f = (FILE*)file;
-    fwrite(data, 1, size, f); //TODO: err check?
+    fwrite(data, 1, size, f); /* TODO: err check? */
 }
 
 void log_CallbackFlushFILE(void * file, int itemswritten)
