@@ -163,6 +163,7 @@ log_Logger * log_Logger_create(log_CallbackFunction outfunc, void * outself)
 void log_Logger_destroy(log_Logger * logger)
 {
     /* TODO: dump all data from list? or only free the list? */
+    fprintf(stderr, "log_Logger_shutdown - NOT IMPLEMENTED FULLY\n");
     free(logger);
 }
 
@@ -175,14 +176,6 @@ void log_Logger_setFlushCallback(log_Logger * logger, log_CallbackFlushFunction 
 {
     logger->flushfunc = flushfunc;
     logger->flushself = flushself;
-}
-
-void log_Logger_shutdown(log_Logger * logger)
-{
-    (void)logger;
-    /* TODO: just free the list? dump it first or not? */
-    fprintf(stderr, "log_Logger_shutdown - NOT IMPLEMENTED\n");
-    fflush(stderr);
 }
 
 void log_Logger_blockWrite(log_Logger * logger)
