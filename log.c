@@ -203,7 +203,7 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
         return;
 
     /* +1 is for \n to add at the end */
-    struct log_Item * item = malloc(sizeof(struct log_Item) + len + 1);
+    struct log_Item * item = (struct log_Item*)malloc(sizeof(struct log_Item) + len + 1);
     item->next = NULL;
     fillTimestamps(&item->timestamp1, &item->timestamp2);
     item->file = file;

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* helper functions that are OS dependent */
 long long log_getTid(void);
 void log_milliSleep(int milliseconds);
@@ -35,3 +39,7 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
 
 /* write out the elements, safe to call from one thread at once, returns amount of items written */
 int log_Logger_dumpAll(log_Logger * logger);
+
+#ifdef __cplusplus
+} /* extern "C" end */
+#endif
