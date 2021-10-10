@@ -9,7 +9,7 @@ typedef void(*log_CallbackFunction)(void * self, const void * data, int size);
 typedef const char*(*log_LevelFormatterFunction)(int level);
 typedef void(*log_CallbackFlushFunction)(void * self, int itemswritten);
 
-/* callbacks that use a FILE ptr form C stdio and fwrite/flush */
+/* predefined callbacks that use a FILE ptr from C stdio and fwrite/flush */
 void log_CallbackDumpToFILE(void * file, const void * data, int size);
 void log_CallbackFlushFILE(void * file, int itemswritten);
 
