@@ -34,16 +34,27 @@ static void * logmain(void * arg)
     return NULL;
 }
 
+static void * timestamper(void * arg)
+{
+    log_Logger * logger = (log_Logger*)arg;
+    log_Logger_logStr(logger, __FILE__, __LINE__, __func__, 0, "BUSY SPINNING THREAD IS UPDATING THE TIMESTAMP!");
+    while(!log_Logger_isWriteBlocked(logger))
+        log_Logger_setTimestamp(logger, log_getPreciesTimestamp());
+    return arg;
+}
+
 #define doslow(expr) do{fprintf(stderr, "Doing '%s' ... ", #expr); fflush(stderr); expr; fprintf(stderr, "done!\n");}while(0)
 
 int main()
 {
     pthread_t logthread;
+    pthread_t timestampthread;
     pthread_t threads[10];
     int workers = 10;
     log_Logger * logger = log_Logger_createForFILE(stdout);
 
     pthread_create(&logthread, NULL, logmain, logger);
+    //pthread_create(&timestampthread, NULL, timestamper, logger);
 
     for(int i = 0; i < workers; ++i)
         pthread_create(&threads[i], NULL, tmain, logger);
@@ -53,6 +64,7 @@ int main()
 
     log_Logger_blockWrite(logger);
     pthread_join(logthread, NULL);
+    //pthread_join(timestampthread, NULL);
     log_Logger_destroy(logger);
 
     for(int i = 0; i < 10; ++i)

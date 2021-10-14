@@ -10,6 +10,7 @@ struct log_Item {
     struct log_Item * next;
     long long timestamp1;
     long long timestamp2;
+    unsigned long long unifiedtimestamp;
     const char * file;
     const char * func;
     int line;
@@ -22,6 +23,9 @@ struct log_Item {
 struct log_Logger {
     struct log_Item * head;
     int writeblocked; /* for shutdown */
+
+    /* for when another thread busy spins and sets this using log_Logger_setTimestamp */
+    unsigned long long timestsamp;
 
     /* tid of thread that is in dump function, 0 if no one is, for error/consistency checking */
     long long dumpingthread;
@@ -93,8 +97,8 @@ char * log_formatPreciseTimestampAsLocalTime(char * buff30chars, unsigned long l
     long long t1, t2;
     t2 = (long long)(timestamp >> 32);
     t1 = (long long)(timestamp & 0xffffffff);
-    formatTimestamps(buff, t1, t2);
-    return buff;
+    formatTimestamps(buff30chars, t1, t2);
+    return buff30chars;
 }
 #endif /* _WIN32 */
 
@@ -148,8 +152,8 @@ char * log_formatPreciseTimestampAsLocalTime(char * buff30chars, unsigned long l
     long long t1, t2;
     t1 = timestamp / (1000 * 1000 * 10);
     t2 = timestamp % (1000 * 1000 * 10);
-    formatTimestamps(buff, t1, t2);
-    return buff;
+    formatTimestamps(buff30chars, t1, t2);
+    return buff30chars;
 }
 #endif /* __linux__ */
 
@@ -187,6 +191,7 @@ log_Logger * log_Logger_create(log_CallbackFunction outfunc, void * outself)
 
     logger->head = NULL;
     logger->writeblocked = 0;
+    logger->timestsamp = 0;
     logger->outself = outself;
     logger->outfunc = outfunc;
     logger->dumpingthread = 0;
@@ -235,7 +240,13 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
     /* +1 is for \n to add at the end */
     struct log_Item * item = (struct log_Item*)malloc(sizeof(struct log_Item) + len + 1);
     item->next = NULL;
-    fillTimestamps(&item->timestamp1, &item->timestamp2);
+
+    const unsigned long long unifiedtimestamp = __atomic_load_n(&logger->timestsamp, __ATOMIC_SEQ_CST);
+    if(unifiedtimestamp > 0)
+        item->unifiedtimestamp = unifiedtimestamp;
+    else
+        fillTimestamps(&item->timestamp1, &item->timestamp2);
+
     item->file = file;
     item->line = line;
     item->func = func;
@@ -260,7 +271,11 @@ static struct log_Item * reverseList(struct log_Item * head)
     return ret;
 }
 
-/* returns amount of items written */
+void log_Logger_setTimestamp(log_Logger * logger, unsigned long long timestamp)
+{
+    __atomic_store_n(&logger->timestsamp, timestamp, __ATOMIC_SEQ_CST);
+}
+
 int log_Logger_dumpAll(log_Logger * logger)
 {
     char buff[10 * 1024];
@@ -278,10 +293,15 @@ int log_Logger_dumpAll(log_Logger * logger)
     int ret = 0;
     while(list)
     {
+        if(list->unifiedtimestamp)
+            log_formatPreciseTimestampAsLocalTime(timestampbuff, list->unifiedtimestamp);
+        else
+            formatTimestamps(timestampbuff, list->timestamp1, list->timestamp2);
+
         const int len = snprintf(
             buff, sizeof(buff),
             "%s %s:%d %s [%d] tid: %lld ",
-            formatTimestamps(timestampbuff, list->timestamp1, list->timestamp2),
+            timestampbuff,
             list->file, list->line, list->func,
             list->level,
             list->tid

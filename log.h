@@ -44,6 +44,13 @@ int log_Logger_isWriteBlocked(const log_Logger * logger);
 void log_Logger_logStr(log_Logger * logger, const char * file, int line, const char * func, int level, const char * text);
 void log_Logger_logLen(log_Logger * logger, const char * file, int line, const char * func, int level, const char * text, int len);
 
+/* this functions allows avoiding doing a syscall in client threads, its safe
+   to call from any thread but needs to be called extremely often to maintain
+   timestamp accuracy and precision, e.g. in a thread that does nothing but
+   calls this and log_getPreciesTimestamp, calling with 0 makes the logger
+   do syscalls itself on each log line call again */
+void log_Logger_setTimestamp(log_Logger * logger, unsigned long long timestamp);
+
 /* write out the elements, safe to call from one thread at once, returns amount of items written */
 int log_Logger_dumpAll(log_Logger * logger);
 
