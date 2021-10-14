@@ -63,7 +63,15 @@ static void fillTimestamps(long long * t1, long long * t2)
     *t2 = ft.dwHighDateTime;
 }
 
-static const char * formatTimestamps(long long t1, long long t2, char * buff)
+unsigned long long log_getPreciesTimestamp(void)
+{
+    long long t1, t2;
+    fillTimestamps(&t1, &t2);
+    return ((unsigned long long)t2) * (1ll << 32) + t1;
+    return 0;
+}
+
+static const char * formatTimestamps(char * buff, long long t1, long long t2)
 {
     FILETIME ft1, ft2;
     SYSTEMTIME st;
@@ -77,6 +85,15 @@ static const char * formatTimestamps(long long t1, long long t2, char * buff)
         st.wHour, st.wMinute, st.wSecond,
         t1 % (10 * 1000 * 1000) /* t1 is amount of hundreds of ns, so modulo it by 10 million */
     );
+    return buff;
+}
+
+char * log_formatPreciseTimestampAsLocalTime(char * buff, unsigned long long timestamp)
+{
+    long long t1, t2;
+    t2 = (long long)(timestamp >> 32);
+    t1 = (long long)(timestamp & 0xffffffff);
+    formatTimestamps(buff, t1, t2);
     return buff;
 }
 #endif /* _WIN32 */
@@ -107,7 +124,14 @@ static void fillTimestamps(long long * t1, long long * t2)
     *t2 = spec.tv_nsec;
 }
 
-static const char * formatTimestamps(long long t1, long long t2, char * buff)
+unsigned long long log_getPreciesTimestamp(void)
+{
+    long long t1, t2;
+    fillTimestamps(&t1, &t2);
+    return ((unsigned long long)t1) * 1000 * 1000 * 10 + ((unsigned long long)t2 / 100);
+}
+
+static const char * formatTimestamps(char * buff, long long t1, long long t2)
 {
     struct tm tm;
     time_t t = (time_t)t1;
@@ -116,6 +140,15 @@ static const char * formatTimestamps(long long t1, long long t2, char * buff)
 
     /* div nsec by 100, since we need 7 digits, not 9, so we have count of hundreds of ns */
     sprintf(buff, "%02d:%02d:%02d.%07lld", tm.tm_hour, tm.tm_min, tm.tm_sec, t2 / 100);
+    return buff;
+}
+
+char * log_formatPreciseTimestampAsLocalTime(char * buff, unsigned long long timestamp)
+{
+    long long t1, t2;
+    t1 = timestamp / (1000 * 1000 * 10);
+    t2 = timestamp % (1000 * 1000 * 10);
+    formatTimestamps(buff, t1, t2);
     return buff;
 }
 #endif /* __linux__ */
@@ -248,7 +281,7 @@ int log_Logger_dumpAll(log_Logger * logger)
         const int len = snprintf(
             buff, sizeof(buff),
             "%s %s:%d %s [%d] tid: %lld ",
-            formatTimestamps(list->timestamp1, list->timestamp2, timestampbuff),
+            formatTimestamps(timestampbuff, list->timestamp1, list->timestamp2),
             list->file, list->line, list->func,
             list->level,
             list->tid

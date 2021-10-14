@@ -8,6 +8,11 @@ extern "C" {
 long long log_getTid(void);
 void log_milliSleep(int milliseconds);
 
+/* units are 100s of nanoseconds but the start differs so this timestamp
+   should only be storeda and used with function below to format it */
+unsigned long long log_getPreciesTimestamp(void);
+char * log_formatPreciseTimestampAsLocalTime(char * buff, unsigned long long timestamp);
+
 /* callbacks for formatting level integer, and for output and flush */
 typedef void(*log_CallbackFunction)(void * self, const void * data, int size);
 typedef const char*(*log_LevelFormatterFunction)(int level);

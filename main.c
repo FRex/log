@@ -54,4 +54,12 @@ int main()
     log_Logger_blockWrite(logger);
     pthread_join(logthread, NULL);
     log_Logger_destroy(logger);
+
+    for(int i = 0; i < 10; ++i)
+    {
+        char buff[30];
+        long long x = log_getPreciesTimestamp();
+        printf("%llu %s\n", x, log_formatPreciseTimestampAsLocalTime(buff, x));
+        log_milliSleep(1000);
+    }
 }
