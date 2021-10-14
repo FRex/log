@@ -45,7 +45,7 @@ static void * timestamper(void * arg)
 
 #define doslow(expr) do{fprintf(stderr, "Doing '%s' ... ", #expr); fflush(stderr); expr; fprintf(stderr, "done!\n");}while(0)
 
-int main()
+int main(int argc, char ** argv)
 {
     pthread_t logthread;
     pthread_t timestampthread;
@@ -54,7 +54,14 @@ int main()
     log_Logger * logger = log_Logger_createForFILE(stdout);
 
     pthread_create(&logthread, NULL, logmain, logger);
-    //pthread_create(&timestampthread, NULL, timestamper, logger);
+
+    if(argc > 1)
+    {
+        (void)argv;
+        pthread_create(&timestampthread, NULL, timestamper, logger);
+        printf("Launching thread to do the timestamps\n");
+        log_milliSleep(1000);
+    }
 
     for(int i = 0; i < workers; ++i)
         pthread_create(&threads[i], NULL, tmain, logger);
@@ -64,7 +71,8 @@ int main()
 
     log_Logger_blockWrite(logger);
     pthread_join(logthread, NULL);
-    //pthread_join(timestampthread, NULL);
+    if(argc > 1)
+        pthread_join(timestampthread, NULL);
     log_Logger_destroy(logger);
 
     for(int i = 0; i < 10; ++i)
