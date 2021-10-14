@@ -88,7 +88,7 @@ static const char * formatTimestamps(char * buff, long long t1, long long t2)
     return buff;
 }
 
-char * log_formatPreciseTimestampAsLocalTime(char * buff, unsigned long long timestamp)
+char * log_formatPreciseTimestampAsLocalTime(char * buff30chars, unsigned long long timestamp)
 {
     long long t1, t2;
     t2 = (long long)(timestamp >> 32);
@@ -143,7 +143,7 @@ static const char * formatTimestamps(char * buff, long long t1, long long t2)
     return buff;
 }
 
-char * log_formatPreciseTimestampAsLocalTime(char * buff, unsigned long long timestamp)
+char * log_formatPreciseTimestampAsLocalTime(char * buff30chars, unsigned long long timestamp)
 {
     long long t1, t2;
     t1 = timestamp / (1000 * 1000 * 10);

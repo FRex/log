@@ -8,10 +8,12 @@ extern "C" {
 long long log_getTid(void);
 void log_milliSleep(int milliseconds);
 
-/* units are 100s of nanoseconds but the start differs so this timestamp
-   should only be storeda and used with function below to format it */
+/* 1 unit = 100 nanoseconds, UTC timestmap, but the starting point is OS
+   dependent so the only intended use is to format it into local time using
+   a 30 character buffer, the format is HH:MM:SS.xxxxxxx, hours, minutes,
+   seconds, and 7 digits of precision for sub-seconds (count of 100s ns) */
 unsigned long long log_getPreciesTimestamp(void);
-char * log_formatPreciseTimestampAsLocalTime(char * buff, unsigned long long timestamp);
+char * log_formatPreciseTimestampAsLocalTime(char * buff30chars, unsigned long long timestamp);
 
 /* callbacks for formatting level integer, and for output and flush */
 typedef void(*log_CallbackFunction)(void * self, const void * data, int size);
