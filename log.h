@@ -43,6 +43,13 @@ int log_Logger_isWriteBlocked(const log_Logger * logger);
 /* add a log text line with file, line, func and log level formatted in, safe to call from any thread */
 void log_Logger_logStr(log_Logger * logger, const char * file, int line, const char * func, int level, const char * text);
 void log_Logger_logLen(log_Logger * logger, const char * file, int line, const char * func, int level, const char * text, int len);
+void log_Logger_logFmt(log_Logger * logger, const char * file, int line, const char * func, int level, const char * fmt, ...);
+
+/* fmt is not given in list so that it can be sole __VA_ARGS__ member without extra tricks to avoid comma after it, etc. */
+#define log_Logger_STRHERE(logger, level, str) log_Logger_logStr(logger, __FILE__, __LINE__, __func__, level, str)
+#define log_Logger_LENHERE(logger, level, str, len) log_Logger_logLen(logger, __FILE__, __LINE__, __func__, level, str, len)
+#define log_Logger_FMTHERE(logger, level, ...) log_Logger_logFmt(logger, __FILE__, __LINE__, __func__, level, __VA_ARGS__)
+
 
 /* this functions allows avoiding doing a syscall in client threads, its safe
    to call from any thread but needs to be called extremely often to maintain

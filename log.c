@@ -1,6 +1,8 @@
 #include "log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 
 
@@ -256,6 +258,38 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
     item->text[len] = '\n';
     item->tid = log_getTid();
     while(!__atomic_compare_exchange_n(&logger->head, &item->next, item, 1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
+}
+
+void log_Logger_logFmt(log_Logger * logger, const char * file, int line, const char * func, int level, const char * fmt, ...)
+{
+    char smallbuff[1024];
+    int written;
+
+    /* try print once into a small buffer*/
+    {
+        va_list args;
+        va_start(args, fmt);
+        written = vsnprintf(smallbuff, 1024, fmt, args);
+        va_end(args);
+    }
+
+    /* did the entire string fit */
+    if(written < 1024)
+    {
+        /* formatted string did fit, the fast case */
+        log_Logger_logLen(logger, file, line, func, level, smallbuff, written);
+    }
+    else
+    {
+        /* formatted string didnt fit, prepare a node of right big size directly */
+        assert(0 && "not implemented");
+        log_Logger_logStr(logger, file, line, func, level, "LOGGING SKIPPED - BIG CASE NOT IMPLEMENTED");
+        /*
+        va_list args;
+        va_start(args, fmt);
+        va_end(args);
+        */
+    }
 }
 
 static struct log_Item * reverseList(struct log_Item * head)

@@ -8,7 +8,7 @@ static void * tmain(void * arg)
     int amount = 100;
     for(int i = 0; i < amount; ++i)
     {
-        log_Logger_logStr(logger, __FILE__, __LINE__, __func__, 0, "test text aaaa");
+        log_Logger_FMTHERE(logger, 1, "test text aaaa");
         log_milliSleep(100);
     }
 
