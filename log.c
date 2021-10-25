@@ -262,19 +262,26 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
 
 void log_Logger_logFmt(log_Logger * logger, const char * file, int line, const char * func, int level, const char * fmt, ...)
 {
-    char smallbuff[1024];
+    va_list args;
+    va_start(args, fmt);
+    log_Logger_logFmtV(logger, file, line, func, level, fmt, args);
+    va_end(args);
+}
+
+void log_Logger_logFmtV(log_Logger * logger, const char * file, int line, const char * func, int level, const char * fmt, va_list args)
+{
+    va_list args2;
+#define SMALLBUFFSIZE 1024
+    char smallbuff[SMALLBUFFSIZE];
     int written;
 
     /* try print once into a small buffer*/
-    {
-        va_list args;
-        va_start(args, fmt);
-        written = vsnprintf(smallbuff, 1024, fmt, args);
-        va_end(args);
-    }
+    va_copy(args2, args);
+    written = vsnprintf(smallbuff, SMALLBUFFSIZE, fmt, args2);
+    va_end(args2);
 
     /* did the entire string fit */
-    if(written < 1024)
+    if(written < SMALLBUFFSIZE)
     {
         /* formatted string did fit, the fast case */
         log_Logger_logLen(logger, file, line, func, level, smallbuff, written);
