@@ -234,15 +234,14 @@ void log_Logger_logStr(log_Logger * logger, const char * file, int line, const c
     log_Logger_logLen(logger, file, line, func, level, text, strlen(text));
 }
 
-void log_Logger_logLen(log_Logger * logger, const char * file, int line, const char * func, int level, const char * text, int len)
+static struct log_Item * createItem(log_Logger * logger, const char * file, int line, const char * func, int level, int len)
 {
-    if(len <= 0)
-        return;
-
     /* +1 is for \n to add at the end */
     struct log_Item * item = (struct log_Item*)malloc(sizeof(struct log_Item) + len + 1);
-    item->next = NULL;
+    if(!item)
+        return NULL;
 
+    item->next = NULL;
     const unsigned long long unifiedtimestamp = __atomic_load_n(&logger->timestsamp, __ATOMIC_SEQ_CST);
     if(unifiedtimestamp > 0)
         item->unifiedtimestamp = unifiedtimestamp;
@@ -254,9 +253,18 @@ void log_Logger_logLen(log_Logger * logger, const char * file, int line, const c
     item->func = func;
     item->level = level;
     item->len = len + 1; /* +1 is for \n added at the end */
+    item->tid = log_getTid();
+    return item;
+}
+
+void log_Logger_logLen(log_Logger * logger, const char * file, int line, const char * func, int level, const char * text, int len)
+{
+    if(len <= 0)
+        return;
+
+    struct log_Item * item = createItem(logger, file, line, func, level, len);
     memcpy(item->text, text, len);
     item->text[len] = '\n';
-    item->tid = log_getTid();
     while(!__atomic_compare_exchange_n(&logger->head, &item->next, item, 1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
 }
 
@@ -271,7 +279,7 @@ void log_Logger_logFmt(log_Logger * logger, const char * file, int line, const c
 void log_Logger_logFmtV(log_Logger * logger, const char * file, int line, const char * func, int level, const char * fmt, va_list args)
 {
     va_list args2;
-#define SMALLBUFFSIZE 1024
+#define SMALLBUFFSIZE (64 * 1024) /* 64 KiB */
     char smallbuff[SMALLBUFFSIZE];
     int written;
 
@@ -288,14 +296,10 @@ void log_Logger_logFmtV(log_Logger * logger, const char * file, int line, const 
     }
     else
     {
-        /* formatted string didnt fit, prepare a node of right big size directly */
-        assert(0 && "not implemented");
-        log_Logger_logStr(logger, file, line, func, level, "LOGGING SKIPPED - BIG CASE NOT IMPLEMENTED");
-        /*
-        va_list args;
-        va_start(args, fmt);
-        va_end(args);
-        */
+        struct log_Item * item = createItem(logger, file, line, func, level, written);
+        vsnprintf(item->text, written + 1, fmt, args); /* +1 for the \0 */
+        item->text[written] = '\n'; /* overwrite the \0 */
+        while(!__atomic_compare_exchange_n(&logger->head, &item->next, item, 1, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST));
     }
 }
 
